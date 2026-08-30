@@ -1,0 +1,1035 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Car Wash POS v2</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f4f6fb; --surface:#ffffff; --surface2:#f8fafc; --line:#e6eaf2;
+  --txt:#0f172a; --muted:#7b8794; --faint:#a7b0bd;
+  --brand:#0d9488; --brand2:#14b8a6; --brandsoft:#e6fffb; --brandtxt:#0f766e;
+  --ok:#059669; --oksoft:#e8f8f1; --warn:#d97706; --warnsoft:#fef4e6;
+  --bad:#e11d48; --badsoft:#ffeef2; --info:#2563eb; --infosoft:#eaf1ff;
+  --shadow:0 1px 2px rgba(16,24,40,.05), 0 8px 24px -12px rgba(16,24,40,.14);
+  --shadow2:0 12px 36px -14px rgba(16,24,40,.28);
+}
+[data-theme="dark"]{
+  --bg:#0b1220; --surface:#121c2e; --surface2:#182437; --line:#243349;
+  --txt:#eaf0f7; --muted:#93a3b8; --faint:#64748b;
+  --brand:#2dd4bf; --brand2:#14b8a6; --brandsoft:#0d3a37; --brandtxt:#5eead4;
+  --ok:#34d399; --oksoft:#0d3a2c; --warn:#fbbf24; --warnsoft:#3a2c0d;
+  --bad:#fb7185; --badsoft:#3f1220; --info:#60a5fa; --infosoft:#132a4d;
+  --shadow:0 1px 2px rgba(0,0,0,.3), 0 10px 28px -14px rgba(0,0,0,.7);
+  --shadow2:0 16px 40px -14px rgba(0,0,0,.8);
+}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;background:var(--bg);color:var(--txt);
+  min-height:100vh;display:flex;-webkit-font-smoothing:antialiased;transition:background .2s,color .2s}
+
+/* ---------- SIDEBAR ---------- */
+aside{width:236px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--line);
+  display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:11px;padding:0 8px 20px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.brand .logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,var(--brand),var(--brand2));
+  display:grid;place-items:center;font-size:21px;box-shadow:0 6px 16px -6px var(--brand);flex-shrink:0}
+.brand .t{font-size:14px;font-weight:800;line-height:1.25;overflow:hidden}
+.brand .t small{display:block;font-size:11px;font-weight:500;color:var(--muted)}
+.navi{display:flex;flex-direction:column;gap:4px;flex:1}
+.navi button{display:flex;align-items:center;gap:11px;background:none;border:none;color:var(--muted);
+  padding:11px 13px;border-radius:11px;cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;text-align:left;width:100%}
+.navi button:hover{background:var(--surface2);color:var(--txt)}
+.navi button.active{background:var(--brand);color:#fff;box-shadow:0 6px 16px -8px var(--brand)}
+.navi button .ic{font-size:17px;width:20px;text-align:center}
+.navi .badge{margin-left:auto;background:var(--badsoft);color:var(--bad);font-size:11px;font-weight:800;padding:2px 7px;border-radius:9px}
+.navi button.active .badge{background:rgba(255,255,255,.25);color:#fff}
+.side-b{border-top:1px solid var(--line);padding-top:12px;display:flex;gap:8px;align-items:center}
+.tglt{flex:1;display:flex;align-items:center;gap:8px;background:var(--surface2);border:1px solid var(--line);
+  border-radius:11px;padding:9px 11px;cursor:pointer;font-size:12.5px;font-weight:700;color:var(--muted);font-family:inherit}
+.tglt:hover{color:var(--txt)}
+
+/* ---------- MAIN ---------- */
+main{flex:1;min-width:0;display:flex;flex-direction:column}
+.topbar{background:var(--surface);border-bottom:1px solid var(--line);padding:15px 26px;
+  display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;position:sticky;top:0;z-index:50}
+.topbar h2{font-size:19px;font-weight:800;letter-spacing:-.3px}
+.topbar h2 small{display:block;font-size:12.5px;font-weight:500;color:var(--muted);margin-top:1px}
+.clock{text-align:right;font-size:12.5px;color:var(--muted);font-weight:600;line-height:1.5}
+.clock b{color:var(--txt);font-size:15px;font-variant-numeric:tabular-nums}
+.page{display:none;padding:22px 26px 48px}
+.page.active{display:block}
+@media(max-width:900px){
+  body{flex-direction:column}
+  aside{width:100%;height:auto;position:static;flex-direction:row;align-items:center;padding:12px;gap:10px;overflow-x:auto;border-right:none;border-bottom:1px solid var(--line)}
+  .brand{border:none;padding:0;margin:0}.brand .t{display:none}
+  .navi{flex-direction:row;flex:0}.navi button{padding:9px 12px;white-space:nowrap}
+  .side-b{border:none;padding:0;margin-left:auto}
+  .page{padding:16px 14px 40px}.topbar{padding:13px 14px}
+}
+
+/* ---------- POS LAYOUT ---------- */
+.pos{display:grid;grid-template-columns:1fr 396px;gap:20px;align-items:start}
+@media(max-width:1150px){.pos{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:var(--shadow)}
+.card + .card{margin-top:18px}
+.chead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:15px}
+.chead h3{font-size:15px;font-weight:800;display:flex;align-items:center;gap:9px}
+.step{width:23px;height:23px;border-radius:8px;background:var(--brandsoft);color:var(--brandtxt);
+  display:grid;place-items:center;font-size:12px;font-weight:800;flex-shrink:0}
+.chead .sub{font-size:12px;color:var(--muted);font-weight:500}
+
+/* segmented size picker */
+.seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:9px}
+.seg button{background:var(--surface2);border:1.5px solid var(--line);color:var(--muted);padding:13px 10px;
+  border-radius:13px;cursor:pointer;font-weight:700;font-size:13.5px;font-family:inherit;text-align:center;transition:.14s}
+.seg button:hover{border-color:var(--brand);color:var(--txt)}
+.seg button .em{display:block;font-size:20px;margin-bottom:3px}
+.seg button small{display:block;font-weight:500;font-size:11px;opacity:.85;margin-top:2px}
+.seg button.active{background:var(--brand);border-color:var(--brand);color:#fff;box-shadow:0 8px 20px -10px var(--brand)}
+
+/* category pills */
+.pills{display:flex;gap:7px;flex-wrap:wrap;margin-bottom:15px}
+.pills button{background:var(--surface2);border:1px solid var(--line);color:var(--muted);padding:7px 14px;
+  border-radius:20px;cursor:pointer;font-size:12.5px;font-weight:700;font-family:inherit}
+.pills button:hover{color:var(--txt);border-color:var(--brand)}
+.pills button.active{background:var(--txt);color:var(--surface);border-color:var(--txt)}
+
+/* service grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(186px,1fr));gap:12px}
+.svc{background:var(--surface);border:1.5px solid var(--line);border-radius:15px;padding:14px;cursor:pointer;
+  transition:.14s;display:flex;flex-direction:column;gap:4px;position:relative;overflow:hidden}
+.svc:hover{border-color:var(--brand);transform:translateY(-3px);box-shadow:var(--shadow2)}
+.svc:active{transform:translateY(-1px)}
+.svc .cc{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.6px;color:var(--brandtxt);
+  background:var(--brandsoft);align-self:flex-start;padding:2px 7px;border-radius:6px}
+.svc .n{font-size:13.5px;font-weight:700;line-height:1.3;margin-top:3px}
+.svc .ar{font-size:12px;color:var(--muted);direction:rtl;font-weight:500}
+.svc .p{font-size:17px;font-weight:800;margin-top:6px;letter-spacing:-.4px}
+.svc .p small{font-size:10.5px;color:var(--faint);font-weight:600;margin-left:2px}
+.svc .plus{position:absolute;top:12px;right:12px;width:22px;height:22px;border-radius:50%;background:var(--brandsoft);
+  color:var(--brandtxt);display:grid;place-items:center;font-size:15px;font-weight:800;opacity:0;transition:.14s}
+.svc:hover .plus{opacity:1}
+
+/* ---------- ORDER PANEL ---------- */
+/* section 3 is its own scroll area: point the mouse at it and the wheel scrolls
+   the panel only, so you can reach the totals and buttons without moving the page */
+.panel{position:sticky;top:88px;max-height:calc(100vh - 106px);overflow-y:auto;
+  overscroll-behavior:contain;padding-right:6px;scrollbar-width:thin;scrollbar-color:var(--line) transparent}
+.panel::-webkit-scrollbar{width:9px}
+.panel::-webkit-scrollbar-track{background:transparent}
+.panel::-webkit-scrollbar-thumb{background:var(--line);border-radius:9px;border:2px solid var(--bg)}
+.panel::-webkit-scrollbar-thumb:hover{background:var(--faint)}
+/* narrow screen = one column: unpin the panel and let it grow with the page.
+   This must come AFTER the .panel rules above so it overrides them. */
+@media(max-width:1150px){
+  .panel{position:static;max-height:none;overflow:visible;padding-right:0}
+}
+.fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.fld{display:flex;flex-direction:column;gap:5px}
+.fld.full{grid-column:1/-1}
+.fld label{font-size:11.5px;font-weight:700;color:var(--muted);letter-spacing:.2px}
+input,select,textarea{background:var(--surface2);border:1.5px solid var(--line);color:var(--txt);padding:10px 12px;
+  border-radius:11px;font-size:13.5px;width:100%;font-family:inherit;font-weight:600;transition:.14s}
+input::placeholder{color:var(--faint);font-weight:500}
+input:focus,select:focus{outline:none;border-color:var(--brand);background:var(--surface);box-shadow:0 0 0 3.5px var(--brandsoft)}
+.switch{display:flex;align-items:center;gap:9px;font-size:12.5px;color:var(--muted);font-weight:600;cursor:pointer;margin-top:12px}
+.switch input{width:38px;height:21px;appearance:none;background:var(--line);border-radius:11px;position:relative;cursor:pointer;flex-shrink:0;border:none;padding:0}
+.switch input:checked{background:var(--brand)}
+.switch input::after{content:"";position:absolute;width:15px;height:15px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.18s;box-shadow:0 1px 3px rgba(0,0,0,.3)}
+.switch input:checked::after{left:20px}
+.switch input:focus{box-shadow:none}
+
+/* no inner scrollbar - the whole panel scrolls as one, so the wheel never gets trapped */
+.cartbox{margin:15px 0;border:1.5px dashed var(--line);border-radius:14px;padding:6px}
+.ci{display:flex;align-items:center;gap:10px;padding:10px;border-radius:11px;font-size:13px}
+.ci:hover{background:var(--surface2)}
+.ci + .ci{border-top:1px solid var(--line)}
+.ci .nm{flex:1;font-weight:700;line-height:1.3;min-width:0}
+.ci .nm small{display:block;color:var(--muted);font-size:11px;font-weight:600;margin-top:1px}
+.stepper{display:flex;align-items:center;gap:2px;background:var(--surface2);border:1px solid var(--line);border-radius:9px;padding:2px}
+.stepper button{width:23px;height:23px;border-radius:7px;border:none;background:none;color:var(--muted);cursor:pointer;font-weight:800;font-size:14px;font-family:inherit}
+.stepper button:hover{background:var(--surface);color:var(--brand)}
+.stepper span{min-width:22px;text-align:center;font-weight:800;font-size:13px}
+.ci .lt{min-width:60px;text-align:right;font-weight:800;font-variant-numeric:tabular-nums}
+.ci .x{background:none;border:none;color:var(--faint);cursor:pointer;font-size:15px;padding:2px 4px;border-radius:6px}
+.ci .x:hover{color:var(--bad);background:var(--badsoft)}
+.blank{text-align:center;padding:34px 14px;color:var(--faint)}
+.blank .em{font-size:34px;display:block;margin-bottom:8px;opacity:.5}
+.blank b{display:block;font-size:13px;color:var(--muted);font-weight:700}
+.blank small{font-size:11.5px}
+
+.sums{background:var(--surface2);border-radius:14px;padding:14px}
+.sr{display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:13px;font-weight:600;color:var(--muted)}
+.sr b{color:var(--txt);font-variant-numeric:tabular-nums}
+.sr input{width:88px;padding:6px 9px;text-align:right;font-size:13px;border-radius:8px}
+.sr.grand{border-top:1.5px solid var(--line);margin-top:9px;padding-top:12px;font-size:15px;color:var(--txt);font-weight:800}
+.sr.grand b{font-size:25px;letter-spacing:-1px;color:var(--brand)}
+.sr.grand b small{font-size:13px;color:var(--muted);font-weight:700}
+
+.btn{width:100%;padding:14px;border:none;border-radius:13px;font-size:14.5px;font-weight:800;cursor:pointer;
+  font-family:inherit;letter-spacing:.2px;transition:.14s;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn:active{transform:scale(.985)}
+.b-main{background:linear-gradient(135deg,var(--brand),var(--brand2));color:#fff;box-shadow:0 10px 24px -10px var(--brand);margin-top:14px}
+.b-main:hover{filter:brightness(1.07)}
+.b-soft{background:var(--surface2);color:var(--muted);border:1.5px solid var(--line)}
+.b-soft:hover{color:var(--txt);border-color:var(--brand)}
+.b-danger{background:var(--badsoft);color:var(--bad);border:1.5px solid transparent}
+.b-danger:hover{background:var(--bad);color:#fff}
+.b-ok2{background:var(--oksoft);color:var(--ok);border:1.5px solid transparent}
+.b-ok2:hover{background:var(--ok);color:#fff}
+.b-info{background:var(--infosoft);color:var(--info);border:1.5px solid transparent}
+.b-info:hover{background:var(--info);color:#fff}
+.duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+.duo .btn{margin-top:0;padding:11px;font-size:13px}
+
+/* ---------- STATS + TABLE ---------- */
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(172px,1fr));gap:13px;margin-bottom:20px}
+.stat{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:16px;box-shadow:var(--shadow);display:flex;gap:13px;align-items:center}
+.stat .ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:19px;flex-shrink:0}
+.stat .l{font-size:11.5px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.stat .v{font-size:20px;font-weight:800;letter-spacing:-.6px;margin-top:2px;font-variant-numeric:tabular-nums}
+.toolbar{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-bottom:18px}
+.toolbar input,.toolbar select{width:auto;background:var(--surface);padding:9px 13px}
+.search{position:relative;min-width:250px;flex:1;max-width:340px}
+.search input{width:100%;padding-left:36px}
+.search .mg{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:14px;opacity:.5}
+.tbtn{padding:10px 15px;border:none;border-radius:11px;font-weight:700;cursor:pointer;font-size:12.5px;font-family:inherit;white-space:nowrap}
+.tblcard{background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden}
+.tblwrap{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--surface2);padding:12px 14px;text-align:left;font-size:11px;text-transform:uppercase;
+  color:var(--muted);letter-spacing:.5px;font-weight:800;white-space:nowrap;border-bottom:1px solid var(--line)}
+td{padding:13px 14px;border-bottom:1px solid var(--line);vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:var(--surface2)}
+.mini{color:var(--muted);font-size:11.5px;font-weight:600;line-height:1.45}
+.chip{display:inline-block;padding:4px 10px;border-radius:9px;font-size:11px;font-weight:800;white-space:nowrap}
+.c-ok{background:var(--oksoft);color:var(--ok)}
+.c-info{background:var(--infosoft);color:var(--info)}
+.c-warn{background:var(--warnsoft);color:var(--warn)}
+.c-bad{background:var(--badsoft);color:var(--bad)}
+.c-mut{background:var(--surface2);color:var(--muted)}
+.iconbtn{width:31px;height:31px;border-radius:9px;border:1px solid var(--line);background:var(--surface);
+  cursor:pointer;font-size:13px;margin-right:5px;color:var(--muted)}
+.iconbtn:hover{background:var(--brandsoft);color:var(--brandtxt);border-color:var(--brand)}
+.iconbtn.d:hover{background:var(--bad);color:#fff;border-color:var(--bad)}
+.money{font-weight:800;font-variant-numeric:tabular-nums}
+
+/* ---------- MODAL ---------- */
+.modal{display:none;position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(4px);z-index:900;
+  align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex;animation:fade .16s ease}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.mbox{background:var(--surface);border:1px solid var(--line);border-radius:20px;padding:24px;width:100%;
+  max-width:470px;box-shadow:0 28px 70px -20px rgba(0,0,0,.5);max-height:92vh;overflow-y:auto;animation:pop .18s ease}
+@keyframes pop{from{transform:scale(.95) translateY(10px);opacity:0}to{transform:none;opacity:1}}
+.mbox h3{font-size:17px;font-weight:800;margin-bottom:4px}
+.mbox .msub{font-size:12.5px;color:var(--muted);margin-bottom:17px;font-weight:500}
+.err{color:var(--bad);font-size:12.5px;min-height:18px;font-weight:700;margin-top:9px}
+.pricegrid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+@media(max-width:520px){.pricegrid{grid-template-columns:1fr}.fields{grid-template-columns:1fr}}
+
+.hint{font-size:12.5px;color:var(--muted);line-height:1.8;margin-top:12px;font-weight:500}
+.setgrid{display:grid;grid-template-columns:1fr 1fr;gap:13px}
+@media(max-width:700px){.setgrid{grid-template-columns:1fr}}
+
+/* ---------- TOAST ---------- */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-24px);background:var(--txt);color:var(--surface);
+  padding:13px 24px;border-radius:13px;font-weight:700;font-size:13.5px;box-shadow:0 16px 40px -12px rgba(0,0,0,.5);
+  z-index:999;opacity:0;pointer-events:none;transition:.22s;display:flex;align-items:center;gap:9px}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ---------- RECEIPT ---------- */
+#receipt{display:none}
+@media print{
+  body > *{display:none !important}
+  #receipt{display:block !important;position:absolute;left:0;top:0;width:100%;background:#fff;color:#000}
+  @page{margin:6mm}
+}
+.rc{width:76mm;margin:0 auto;font-family:"Courier New",monospace;color:#000;font-size:12px}
+.rc h2{text-align:center;font-size:17px;margin-bottom:2px}
+.rc .sub{text-align:center;font-size:10.5px;line-height:1.5}
+.rc .arh{text-align:center;font-size:13px;direction:rtl;margin-bottom:4px}
+.rc .doctype{text-align:center;font-weight:bold;font-size:12.5px;border:1.5px solid #000;padding:3px 0;margin:6px 0}
+.rc hr{border:none;border-top:1px dashed #000;margin:5px 0}
+.rc .l{display:flex;justify-content:space-between;font-size:11px;padding:1px 0;gap:6px}
+.rc .l span:last-child{text-align:right}
+.rc table{width:100%;font-size:11px;border-collapse:collapse}
+.rc th{background:none;color:#000;border-bottom:1px solid #000;padding:3px 0;font-size:10.5px;text-transform:none;letter-spacing:0;font-weight:bold}
+.rc td{border:none;padding:2px 0;color:#000}
+.rc .grand{font-size:15px;font-weight:bold;display:flex;justify-content:space-between;border-top:2px solid #000;border-bottom:2px solid #000;padding:4px 0;margin-top:4px}
+.rc .ft{text-align:center;font-size:10.5px;margin-top:8px;line-height:1.6}
+</style>
+</head>
+<body>
+
+<aside>
+  <div class="brand">
+    <div class="logo">&#128663;</div>
+    <div class="t"><span id="brandName">AL BARAKA</span><small id="brandSub">Car Wash POS</small></div>
+  </div>
+  <div class="navi">
+    <button class="active" onclick="tab('pos',this)"><span class="ic">&#10133;</span> New Order</button>
+    <button onclick="tab('hist',this)"><span class="ic">&#128220;</span> Bills <span class="badge" id="navCount">0</span></button>
+    <button onclick="tab('prices',this)"><span class="ic">&#127991;</span> Price List</button>
+    <button onclick="tab('set',this)"><span class="ic">&#9881;</span> Settings</button>
+  </div>
+  <div class="side-b">
+    <button class="tglt" onclick="toggleTheme()"><span id="thIc">&#127769;</span> <span id="thTxt">Dark mode</span></button>
+  </div>
+</aside>
+
+<main>
+  <div class="topbar">
+    <h2 id="pgTitle">New Order<small id="pgSub">Build a bill and print it for the customer</small></h2>
+    <div class="clock" id="clock"></div>
+  </div>
+
+  <!-- ============ NEW ORDER ============ -->
+  <div id="pos" class="page active">
+    <div class="pos">
+      <div>
+        <div class="card">
+          <div class="chead"><h3><span class="step">1</span> Vehicle Size</h3><span class="sub">&#1581;&#1580;&#1605; &#1575;&#1604;&#1605;&#1585;&#1603;&#1576;&#1577;</span></div>
+          <div class="seg" id="sizeBar"></div>
+        </div>
+        <div class="card">
+          <div class="chead"><h3><span class="step">2</span> Choose Services</h3><span class="sub" id="svcCount"></span></div>
+          <div class="pills" id="cats"></div>
+          <div class="grid" id="svcGrid"></div>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="card">
+          <div class="chead"><h3><span class="step">3</span> Customer &amp; Bill</h3><span class="chip c-mut" id="billNoLbl">CW-00001</span></div>
+          <div class="fields">
+            <div class="fld full"><label>Customer Name / &#1575;&#1587;&#1605; &#1575;&#1604;&#1586;&#1576;&#1608;&#1606;</label><input id="cName" placeholder="Walk-in Customer"></div>
+            <div class="fld"><label>Phone</label><input id="cPhone" placeholder="9xxx xxxx"></div>
+            <div class="fld"><label>Plate No.</label><input id="cPlate" placeholder="1234 AB"></div>
+            <div class="fld full"><label>Car Model</label><input id="cCar" placeholder="Toyota Land Cruiser"></div>
+            <div class="fld"><label>Payment</label><select id="cPay"><option>Cash</option><option>Card</option><option>Transfer</option></select></div>
+            <div class="fld"><label>Status</label><select id="cStatus"><option>Paid</option><option>Unpaid</option></select></div>
+            <div class="fld full" id="b2bWrap" style="display:none">
+              <label>Customer VAT No. &amp; Address (company invoice)</label>
+              <input id="cVat" placeholder="Customer VATIN" style="margin-bottom:9px">
+              <input id="cAddr" placeholder="Customer address">
+            </div>
+          </div>
+          <label class="switch"><input type="checkbox" id="b2bChk" onchange="toggleB2B()"> Company invoice (add customer VAT no.)</label>
+
+          <div class="cartbox" id="cartList"></div>
+
+          <div class="sums">
+            <div class="sr"><span>Subtotal (excl. VAT)</span><b id="sSub">0.000</b></div>
+            <div class="sr"><span>Discount</span><input type="number" id="sDisc" value="0" min="0" step="0.100" oninput="calc()"></div>
+            <div class="sr" id="vatRow"><span>VAT <span id="vatPctLbl">5</span>%</span><b id="sVat">0.000</b></div>
+            <div class="sr grand"><span>TOTAL</span><b id="sTot">0.000<small> OMR</small></b></div>
+          </div>
+
+          <button class="btn b-main" onclick="placeOrder(true)">&#10004; Add Order &amp; Print Bill</button>
+          <div class="duo">
+            <button class="btn b-soft" onclick="placeOrder(false)">Save Only</button>
+            <button class="btn b-soft" onclick="clearCart()">Clear</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY ============ -->
+  <div id="hist" class="page">
+    <div class="stats" id="stats"></div>
+    <div class="toolbar">
+      <div class="search"><span class="mg">&#128269;</span><input id="fSearch" placeholder="Search bill, name, plate, car..." oninput="renderHist()"></div>
+      <input type="date" id="fFrom" onchange="renderHist()">
+      <input type="date" id="fTo" onchange="renderHist()">
+      <select id="fPay" onchange="renderHist()"><option value="">All Payments</option><option>Cash</option><option>Card</option><option>Transfer</option></select>
+      <button class="tbtn b-soft" onclick="resetFilters()">Reset</button>
+      <span style="flex:1"></span>
+      <button class="tbtn b-ok2" onclick="exportExcel()">&#128202; Export to Excel</button>
+      <button class="tbtn b-info" onclick="exportCSV()">CSV</button>
+      <button class="tbtn b-danger" onclick="clearAll()">&#128465; Clear All</button>
+    </div>
+    <div class="tblcard"><div class="tblwrap"><table>
+      <thead><tr><th>Bill</th><th>Date</th><th>Customer</th><th>Vehicle</th><th>Services</th><th>Total</th><th>Payment</th><th>Status</th><th></th></tr></thead>
+      <tbody id="histBody"></tbody>
+    </table></div></div>
+  </div>
+
+  <!-- ============ PRICE LIST ============ -->
+  <div id="prices" class="page" style="display:none">
+    <div class="card">
+      <div class="chead">
+        <h3>&#127991; Price List <span class="sub" style="margin-left:4px">&#1602;&#1575;&#1574;&#1605;&#1577; &#1575;&#1604;&#1571;&#1587;&#1593;&#1575;&#1585;</span></h3>
+        <div style="display:flex;gap:9px">
+          <button class="tbtn b-ok2" onclick="openSvc(null)">&#10133; Add New Service</button>
+          <button class="tbtn b-soft" onclick="resetPrices()">Reset to Default</button>
+        </div>
+      </div>
+      <p class="hint" style="margin-top:0">Prices in OMR. Every service has three prices &mdash; <b>Normal Car</b>, <b>SUV</b>, <b>4x4/Pickup</b>. Changes appear on the order screen instantly. Old bills keep the price they were sold at.</p>
+      <div class="tblwrap" style="margin-top:14px"><table>
+        <thead><tr><th>Category</th><th>Service</th><th>Normal Car</th><th>SUV</th><th>4x4 / Pickup</th><th></th></tr></thead>
+        <tbody id="priceBody"></tbody>
+      </table></div>
+    </div>
+  </div>
+
+  <!-- ============ SETTINGS ============ -->
+  <div id="set" class="page">
+    <div class="card" style="max-width:820px">
+      <div class="chead"><h3>&#127978; Shop &amp; Legal Details</h3></div>
+      <div class="setgrid">
+        <div class="fld"><label>Shop Name (English) *</label><input id="stName"></div>
+        <div class="fld"><label>&#1575;&#1587;&#1605; &#1575;&#1604;&#1605;&#1581;&#1604; &#1576;&#1575;&#1604;&#1593;&#1585;&#1576;&#1610; *</label><input id="stNameAr" style="direction:rtl"></div>
+        <div class="fld" style="grid-column:1/-1"><label>Full Address (Wilayat, Governorate) *</label><input id="stAddr"></div>
+        <div class="fld"><label>Phone *</label><input id="stPhone"></div>
+        <div class="fld"><label>Email</label><input id="stEmail"></div>
+        <div class="fld"><label>C.R. Number / &#1587;&#1580;&#1604; &#1578;&#1580;&#1575;&#1585;&#1610; *</label><input id="stCr"></div>
+        <div class="fld"><label>VAT Number (VATIN)</label><input id="stVatNo"></div>
+        <div class="fld"><label>VAT %</label><input id="stVatPct" type="number" step="0.5"></div>
+        <div class="fld"><label>Cashier / Served by</label><input id="stCashier"></div>
+        <div class="fld" style="grid-column:1/-1"><label>Receipt footer message</label><input id="stFooter"></div>
+        <div class="fld" style="grid-column:1/-1"><label>Terms line printed on every bill</label><input id="stTerms"></div>
+      </div>
+      <label class="switch"><input type="checkbox" id="stVatOn"> This shop is VAT registered &ndash; apply VAT and print a Tax Invoice</label>
+      <button class="btn b-main" onclick="saveSettings()">Save Settings</button>
+
+
+      <div class="duo" style="max-width:400px">
+        <button class="btn b-info" onclick="backup()">Backup Data</button>
+        <button class="btn b-soft" onclick="document.getElementById('restoreFile').click()">Restore Data</button>
+      </div>
+      <input type="file" id="restoreFile" accept=".json" style="display:none" onchange="restore(event)">
+    </div>
+  </div>
+</main>
+
+<!-- ============ MODAL ============ -->
+<div id="svcModal" class="modal">
+  <div class="mbox">
+    <h3 id="svcTitle">Add New Service</h3>
+    <div class="msub">Give it a name, a category, and a price for each vehicle size.</div>
+    <div class="fields">
+      <div class="fld full"><label>Service Name (English) *</label><input id="svcName" placeholder="e.g. Ceramic Coating"></div>
+      <div class="fld full"><label>&#1575;&#1587;&#1605; &#1575;&#1604;&#1582;&#1583;&#1605;&#1577; &#1576;&#1575;&#1604;&#1593;&#1585;&#1576;&#1610;</label><input id="svcAr" style="direction:rtl"></div>
+      <div class="fld full"><label>Category</label><select id="svcCat" onchange="catPick()"></select></div>
+      <div class="fld full" id="newCatWrap" style="display:none"><label>New category name</label><input id="svcNewCat"></div>
+    </div>
+    <div style="margin:16px 0 9px;font-size:12px;font-weight:800;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Price in OMR</div>
+    <div class="pricegrid">
+      <div class="fld"><label>Normal Car</label><input type="number" id="svcP0" step="0.100" min="0" placeholder="0.000"></div>
+      <div class="fld"><label>SUV</label><input type="number" id="svcP1" step="0.100" min="0" placeholder="0.000"></div>
+      <div class="fld"><label>4x4 / Pickup</label><input type="number" id="svcP2" step="0.100" min="0" placeholder="0.000"></div>
+    </div>
+    <div class="err" id="svcErr"></div>
+    <div class="duo">
+      <button class="btn b-main" style="margin-top:0" onclick="saveSvc()">Save Service</button>
+      <button class="btn b-soft" onclick="closeSvc()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div id="receipt"></div>
+
+<script>
+/* ==========================================================
+   CAR WASH POS - version 2 (new look, same engine)
+   Shares its saved data with version 1.
+   Prices in OMR: [Normal Car, SUV, 4x4/Pickup]
+   ========================================================== */
+const SIZES = [
+  {id:"Normal Car", en:"Normal Car", ar:"سيارة",     em:"🚗"},
+  {id:"SUV",   en:"SUV / Van", ar:"دفع رباعي متوسط", em:"🚙"},
+  {id:"4x4",   en:"4x4 / Pickup", ar:"لاندكروزر وبكب", em:"🛻"}
+];
+
+const DEFAULT_SERVICES = [
+ {c:"Wash", n:"Quick Exterior Wash",       a:"غسيل خارجي سريع",          p:[2.000,2.500,3.500]},
+ {c:"Wash", n:"Wash Inside & Outside",     a:"غسيل داخل وخارج",          p:[3.000,4.000,5.000]},
+ {c:"Wash", n:"Shine Wash Package",        a:"باقة اللمعان",                        p:[6.500,8.000,9.500]},
+ {c:"Wash", n:"Premium Wash + Wax",        a:"باقة ممتازة مع الشمع",  p:[11.000,13.000,15.000]},
+ {c:"Wash", n:"VIP Full Detail Package",   a:"باقة في آي بي الشاملة",   p:[19.500,24.000,29.900]},
+ {c:"Wash", n:"Underbody / Chassis Wash",  a:"غسيل الشاسي من الأسفل", p:[3.000,4.000,5.000]},
+ {c:"Wash", n:"Engine Wash",               a:"غسيل المحرك",                              p:[5.000,6.000,7.000]},
+ {c:"Interior", n:"Interior Vacuum Only",  a:"شفط داخلي فقط",                        p:[1.500,2.000,2.500]},
+ {c:"Interior", n:"Steam Wash Interior",   a:"غسيل بالبخار للداخل", p:[12.000,15.000,18.000]},
+ {c:"Interior", n:"Seats Shampoo",         a:"شامبو المقاعد",                    p:[15.000,18.000,22.000]},
+ {c:"Interior", n:"Carpet / Mats Shampoo", a:"غسيل الفرش والدعاسات", p:[5.000,6.000,7.000]},
+ {c:"Interior", n:"Roof Lining Cleaning",  a:"تنظيف سقف السيارة",  p:[8.000,9.000,10.000]},
+ {c:"Interior", n:"Dashboard Polish",      a:"تلميع الطبلون",                    p:[2.000,2.500,3.000]},
+ {c:"Interior", n:"Leather Treatment",     a:"عناية بالجلد",                          p:[10.000,12.000,14.000]},
+ {c:"Interior", n:"Odour Removal / Ozone", a:"إزالة الروائح",                    p:[7.000,8.000,9.000]},
+ {c:"Polish", n:"Wax Polish (Hand)",       a:"تلميع بالشمع",                          p:[8.000,10.000,12.000]},
+ {c:"Polish", n:"Full Body Polish 3-Stage",a:"تلميع كامل 3 مراحل",      p:[25.000,30.000,35.000]},
+ {c:"Polish", n:"Scratch Removal (Panel)", a:"إزالة الخدوش",                          p:[6.000,6.000,6.000]},
+ {c:"Polish", n:"Headlight Restoration",   a:"تلميع الكشافات",                p:[8.000,8.000,8.000]},
+ {c:"Polish", n:"Teflon / Wax Coating",    a:"طلاء تفلون",                                      p:[30.000,35.000,40.000]},
+ {c:"Polish", n:"Nano Ceramic Coating",    a:"طلاء النانو سيراميك", p:[90.000,110.000,130.000]},
+ {c:"Polish", n:"Water Spot / Clay Bar",   a:"إزالة بقع الماء",              p:[12.000,15.000,18.000]},
+ {c:"Extras", n:"Tyre Polish / Dressing",  a:"تلميع الإطارات",                p:[1.000,1.500,2.000]},
+ {c:"Extras", n:"Rims Deep Clean",         a:"تنظيف الجنوط",                          p:[3.000,3.500,4.000]},
+ {c:"Extras", n:"Glass Water Repellent",   a:"عازل مائي للزجاج",        p:[6.000,7.000,8.000]},
+ {c:"Extras", n:"Air Freshener",           a:"معطر سيارة",                                      p:[1.000,1.000,1.000]},
+ {c:"Extras", n:"Sticker Removal",         a:"إزالة الملصقات",                p:[3.000,3.000,3.000]},
+ {c:"Extras", n:"Wiper Blades Change",     a:"تغيير مساحات",                          p:[4.000,4.500,5.000]},
+ {c:"Extras", n:"Tyre Air / Nitrogen",     a:"تعبئة هواء نيتروجين", p:[1.500,2.000,2.500]},
+ {c:"Extras", n:"Express Service (+50%)",  a:"خدمة سريعة",                                      p:[2.000,3.000,4.000]}
+];
+
+let SERVICES = [], svcSeq = 1;
+function idServices(){
+  SERVICES.forEach(s=>{ if(!s.id) s.id = "s"+(svcSeq++); });
+  SERVICES.forEach(s=>{ const n = parseInt(String(s.id).replace("s","")); if(n>=svcSeq) svcSeq = n+1; });
+}
+function loadDefaultServices(){ SERVICES = JSON.parse(JSON.stringify(DEFAULT_SERVICES)); svcSeq = 1; idServices(); }
+
+let SET = {name:"AL BARAKA CAR WASH", nameAr:"مغسلة البركة للسيارات",
+  addr:"Al Khuwair, Muscat, Sultanate of Oman", phone:"+968 9000 0000", email:"",
+  cr:"1234567", vatNo:"OM1100000000", vatPct:5, vatOn:false, cashier:"",
+  footer:"Thank you for your visit! شكرا لزيارتكم",
+  terms:"The shop is not responsible for items left in the vehicle."};
+const SHOP_ID = "demo";   /* demo copy - separate storage */
+const K = k => "cw_" + SHOP_ID + "_" + k;
+
+let cart = [], orders = [], counter = 1, curSize = 0, curCat = "All";
+
+/* ---------- storage (same keys as v1) ---------- */
+function load(){
+  try{
+    const s = localStorage.getItem(K("set"));    if(s) SET = Object.assign(SET, JSON.parse(s));
+    const o = localStorage.getItem(K("orders")); if(o) orders = JSON.parse(o);
+    const c = localStorage.getItem(K("counter"));if(c) counter = parseInt(c);
+    const v = localStorage.getItem(K("services"));
+    if(v){ const arr = JSON.parse(v); if(Array.isArray(arr) && arr.length){ SERVICES = arr; idServices(); } }
+  }catch(e){ console.warn(e); }
+  if(!SERVICES.length) loadDefaultServices();
+}
+function save(){
+  try{
+    localStorage.setItem(K("set"), JSON.stringify(SET));
+    localStorage.setItem(K("orders"), JSON.stringify(orders));
+    localStorage.setItem(K("counter"), counter);
+    localStorage.setItem(K("services"), JSON.stringify(SERVICES));
+  }catch(e){ alert("Storage error: " + e.message); }
+}
+
+/* ---------- helpers ---------- */
+const $  = id => document.getElementById(id);
+const f3 = n => Number(n).toFixed(3);
+const esc = s => String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+function toast(m,ic){ const t=$("toast"); t.innerHTML='<span>'+(ic||"&#10004;")+'</span> '+esc(m);
+  t.classList.add("show"); clearTimeout(t._t); t._t=setTimeout(()=>t.classList.remove("show"),2400); }
+function billNo(n){ return "CW-" + String(n).padStart(5,"0"); }
+
+/* ---------- theme ---------- */
+function toggleTheme(){
+  const dark = document.documentElement.dataset.theme === "dark";
+  setTheme(dark ? "light" : "dark");
+  try{ localStorage.setItem(K("theme"), document.documentElement.dataset.theme); }catch(e){}
+}
+function setTheme(t){
+  document.documentElement.dataset.theme = t;
+  $("thIc").innerHTML  = t==="dark" ? "&#9728;" : "&#127769;";
+  $("thTxt").textContent = t==="dark" ? "Light mode" : "Dark mode";
+}
+
+/* ---------- tabs ---------- */
+const PAGES = {
+  pos: ["New Order","Build a bill and print it for the customer"],
+  hist:["Bills &amp; History","Every bill you made - search, reprint, export"],
+  prices:["Price List","Add, edit or delete the services you sell"],
+  set: ["Settings","Shop details, legal invoice fields and backup"]
+};
+function tab(id, btn){
+  document.querySelectorAll(".page").forEach(p=>{ p.classList.remove("active"); p.style.display="none"; });
+  document.querySelectorAll(".navi button").forEach(b=>b.classList.remove("active"));
+  const el = document.querySelector("#"+id+".page") || $(id);
+  el.classList.add("active"); el.style.display="block";
+  btn.classList.add("active");
+  $("pgTitle").innerHTML = PAGES[id][0] + '<small>' + PAGES[id][1] + '</small>';
+  if(id==="hist") renderHist();
+  if(id==="prices"||id==="set") renderPrices();
+  if(id==="set")  fillSettings();
+}
+function toggleB2B(){ $("b2bWrap").style.display = $("b2bChk").checked ? "flex" : "none"; }
+
+/* ---------- menu ---------- */
+function renderSizes(){
+  $("sizeBar").innerHTML = SIZES.map((s,i)=>
+    '<button class="'+(i===curSize?"active":"")+'" onclick="setSize('+i+')">'+
+    '<span class="em">'+s.em+'</span>'+esc(s.en)+'<small>'+esc(s.ar)+'</small></button>').join("");
+}
+function setSize(i){ curSize=i; renderSizes(); renderMenu(); repriceCart(); }
+function renderCats(){
+  const cats = ["All", ...new Set(SERVICES.map(s=>s.c))];
+  $("cats").innerHTML = cats.map(c=>
+    '<button class="'+(c===curCat?"active":"")+'" onclick="setCat(\''+c+'\')">'+esc(c)+'</button>').join("");
+}
+function setCat(c){ curCat=c; renderCats(); renderMenu(); }
+function renderMenu(){
+  const list = SERVICES.filter(s=> curCat==="All" || s.c===curCat);
+  $("svcCount").textContent = list.length + " services  •  " + SIZES[curSize].en + " prices";
+  const box = $("svcGrid");
+  if(!list.length){ box.innerHTML = '<div class="blank"><span class="em">&#128230;</span><b>No services in this category</b><small>Add one from the Price List page</small></div>'; return; }
+  box.innerHTML = list.map(s=>
+    '<div class="svc" onclick="addItem(\''+s.id+'\')">'+
+      '<span class="plus">+</span>'+
+      '<span class="cc">'+esc(s.c)+'</span>'+
+      '<div class="n">'+esc(s.n)+'</div>'+
+      '<div class="ar">'+esc(s.a)+'</div>'+
+      '<div class="p">'+f3(s.p[curSize])+'<small>OMR</small></div>'+
+    '</div>').join("");
+}
+const svcById = id => SERVICES.find(s=>s.id===id);
+
+/* ---------- cart ---------- */
+function addItem(id){
+  const s = svcById(id); if(!s) return;
+  const ex = cart.find(x=>x.id===id);
+  if(ex) ex.q++; else cart.push({id:id, n:s.n, a:s.a, price:s.p[curSize], q:1});
+  renderCart();
+}
+function chQty(id,d){
+  const it = cart.find(x=>x.id===id); if(!it) return;
+  it.q += d; if(it.q<=0) cart = cart.filter(x=>x.id!==id);
+  renderCart();
+}
+function delItem(id){ cart = cart.filter(x=>x.id!==id); renderCart(); }
+function repriceCart(){
+  cart = cart.filter(it=>svcById(it.id));
+  cart.forEach(it=>{ const s=svcById(it.id); it.price = s.p[curSize]; it.n = s.n; it.a = s.a; });
+  renderCart();
+}
+function clearCart(){
+  if(cart.length && !confirm("Clear the current order?")) return;
+  cart=[]; ["cName","cPhone","cPlate","cCar","cVat","cAddr"].forEach(id=>$(id).value="");
+  $("sDisc").value=0; $("b2bChk").checked=false; toggleB2B(); renderCart();
+}
+function renderCart(){
+  if(!cart.length){
+    $("cartList").innerHTML = '<div class="blank"><span class="em">&#128722;</span><b>No services selected</b><small>Tap a service to add it here</small></div>';
+  } else {
+    $("cartList").innerHTML = cart.map(it=>
+      '<div class="ci"><div class="nm">'+esc(it.n)+'<small>'+f3(it.price)+' OMR each</small></div>'+
+      '<div class="stepper"><button onclick="chQty(\''+it.id+'\',-1)">&minus;</button><span>'+it.q+'</span><button onclick="chQty(\''+it.id+'\',1)">+</button></div>'+
+      '<div class="lt">'+f3(it.price*it.q)+'</div>'+
+      '<button class="x" onclick="delItem(\''+it.id+'\')" title="Remove">&#10006;</button></div>').join("");
+  }
+  calc();
+}
+function calc(){
+  const sub  = cart.reduce((t,i)=>t+i.price*i.q, 0);
+  let disc   = parseFloat($("sDisc").value)||0; if(disc>sub) disc=sub;
+  const base = sub - disc;
+  const vat  = SET.vatOn ? base * SET.vatPct/100 : 0;
+  $("sSub").textContent = f3(sub);
+  $("sVat").textContent = f3(vat);
+  $("sTot").innerHTML   = f3(base+vat)+'<small> OMR</small>';
+  $("vatRow").style.display = SET.vatOn ? "flex" : "none";
+  $("vatPctLbl").textContent = SET.vatPct;
+  $("billNoLbl").textContent = billNo(counter);
+  return {sub:sub, disc:disc, vat:vat, total:base+vat};
+}
+
+/* ---------- place order ---------- */
+function placeOrder(doPrint){
+  if(!cart.length){ toast("Please select at least one service","&#9888;"); return; }
+  const t = calc(), d = new Date();
+  const o = {
+    no: counter, bill: billNo(counter),
+    date: d.toISOString().slice(0,10), time: d.toTimeString().slice(0,5),
+    name: $("cName").value.trim() || "Walk-in Customer",
+    phone:$("cPhone").value.trim(), plate:$("cPlate").value.trim(), car:$("cCar").value.trim(),
+    size: SIZES[curSize].id, pay:$("cPay").value, status:$("cStatus").value,
+    cVat: $("b2bChk").checked ? $("cVat").value.trim() : "",
+    cAddr:$("b2bChk").checked ? $("cAddr").value.trim() : "",
+    items: cart.map(i=>({n:i.n, a:i.a, price:i.price, q:i.q})),
+    sub:t.sub, disc:t.disc, vatPct: SET.vatOn?SET.vatPct:0, vat:t.vat, total:t.total,
+    cr: SET.cr, vatNo: SET.vatNo, cashier: SET.cashier
+  };
+  orders.unshift(o); counter++; save();
+  cart=[]; ["cName","cPhone","cPlate","cCar","cVat","cAddr"].forEach(id=>$(id).value="");
+  $("b2bChk").checked=false; toggleB2B(); $("sDisc").value=0;
+  renderCart(); updateBadge();
+  toast("Bill " + o.bill + " saved");
+  if(doPrint) printBill(o.no);
+}
+
+/* ---------- receipt (Oman compliant) ---------- */
+function receiptHTML(o){
+  const isTax = o.vatPct > 0;
+  const docEn = !isTax ? "INVOICE" : (o.total < 500 && !o.cVat ? "SIMPLIFIED TAX INVOICE" : "TAX INVOICE");
+  const docAr = !isTax ? "فاتورة"  : (o.total < 500 && !o.cVat ? "فاتورة ضريبية مبسطة" : "فاتورة ضريبية");
+  const rows = o.items.map(i=>
+    '<tr><td>'+esc(i.n)+'</td><td style="text-align:center">'+i.q+'</td>'+
+    '<td style="text-align:right">'+f3(i.price)+'</td><td style="text-align:right">'+f3(i.price*i.q)+'</td></tr>').join("");
+  return '<div class="rc">'+
+    '<h2>'+esc(SET.name)+'</h2>'+
+    '<div class="arh">'+esc(SET.nameAr)+'</div>'+
+    '<div class="sub">'+esc(SET.addr)+'</div>'+
+    '<div class="sub">Tel: '+esc(SET.phone)+(SET.email?' | '+esc(SET.email):'')+'</div>'+
+    '<div class="sub">C.R. No: '+esc(o.cr||SET.cr)+(isTax ? ' &nbsp;|&nbsp; VATIN: '+esc(o.vatNo||SET.vatNo) : '')+'</div>'+
+    '<div class="doctype">'+docEn+' / '+docAr+'</div>'+
+    '<div class="l"><span><b>No: '+o.bill+'</b></span><span>'+o.date+' '+o.time+'</span></div>'+
+    '<div class="l"><span>Customer:</span><span>'+esc(o.name)+'</span></div>'+
+    (o.phone ? '<div class="l"><span>Phone:</span><span>'+esc(o.phone)+'</span></div>' : '')+
+    (o.cAddr ? '<div class="l"><span>Address:</span><span>'+esc(o.cAddr)+'</span></div>' : '')+
+    (o.cVat  ? '<div class="l"><span>Customer VATIN:</span><span>'+esc(o.cVat)+'</span></div>' : '')+
+    (o.car   ? '<div class="l"><span>Car:</span><span>'+esc(o.car)+'</span></div>' : '')+
+    (o.plate ? '<div class="l"><span>Plate:</span><span>'+esc(o.plate)+'</span></div>' : '')+
+    '<div class="l"><span>Vehicle Size:</span><span>'+esc(o.size)+'</span></div>'+
+    (o.cashier ? '<div class="l"><span>Served by:</span><span>'+esc(o.cashier)+'</span></div>' : '')+
+    '<hr>'+
+    '<table><thead><tr><th style="text-align:left">Service</th><th>Qty</th><th style="text-align:right">Rate</th><th style="text-align:right">Amount</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<hr>'+
+    '<div class="l"><span>Total excl. VAT</span><span>'+f3(o.sub)+'</span></div>'+
+    (o.disc>0 ? '<div class="l"><span>Discount</span><span>-'+f3(o.disc)+'</span></div>' : '')+
+    (isTax ? '<div class="l"><span>Taxable Amount</span><span>'+f3(o.sub-o.disc)+'</span></div>'+
+             '<div class="l"><span>VAT @ '+o.vatPct+'%</span><span>'+f3(o.vat)+'</span></div>' : '')+
+    '<div class="grand"><span>TOTAL (OMR)</span><span>'+f3(o.total)+'</span></div>'+
+    '<div class="l" style="margin-top:4px"><span>Payment:</span><span>'+esc(o.pay)+' / '+esc(o.status)+'</span></div>'+
+    '<div class="ft">'+esc(SET.terms)+'<br>'+esc(SET.footer)+'<br>'+
+    'المحل غير مسؤول عن المقتنيات المتروكة داخل السيارة<br>- - - - - - - - - - - - - - -</div></div>';
+}
+function printBill(no){
+  const o = orders.find(x=>x.no===no); if(!o){ toast("Bill not found","&#9888;"); return; }
+  $("receipt").innerHTML = receiptHTML(o);
+  window.print();
+}
+
+/* ---------- history ---------- */
+function filtered(){
+  const q = $("fSearch").value.toLowerCase().trim();
+  const from = $("fFrom").value, to = $("fTo").value, pay = $("fPay").value;
+  return orders.filter(o=>{
+    if(pay && o.pay!==pay) return false;
+    if(from && o.date < from) return false;
+    if(to   && o.date > to)   return false;
+    if(q){
+      const blob = (o.bill+" "+o.name+" "+o.plate+" "+o.car+" "+o.phone+" "+o.items.map(i=>i.n).join(" ")).toLowerCase();
+      if(blob.indexOf(q)===-1) return false;
+    }
+    return true;
+  });
+}
+function resetFilters(){ ["fSearch","fFrom","fTo"].forEach(i=>$(i).value=""); $("fPay").value=""; renderHist(); }
+function updateBadge(){ $("navCount").textContent = orders.length; }
+
+function renderHist(){
+  const list = filtered();
+  const today = new Date().toISOString().slice(0,10);
+  const rev   = list.reduce((t,o)=>t+o.total,0);
+  const todayRev = orders.filter(o=>o.date===today).reduce((t,o)=>t+o.total,0);
+  const unpaid   = orders.filter(o=>o.status==="Unpaid").reduce((t,o)=>t+o.total,0);
+  $("stats").innerHTML =
+    stat("&#128203;","c-info","Bills Shown", list.length) +
+    stat("&#128176;","c-ok","Revenue Shown", f3(rev)+" OMR") +
+    stat("&#9728;","c-warn","Today's Sales", f3(todayRev)+" OMR") +
+    stat("&#128663;","c-info","Total Bills", orders.length) +
+    stat("&#9203;","c-bad","Unpaid", f3(unpaid)+" OMR") +
+    stat("&#128200;","c-ok","Average Bill", f3(list.length? rev/list.length : 0)+" OMR");
+  updateBadge();
+
+  if(!list.length){
+    $("histBody").innerHTML = '<tr><td colspan="9"><div class="blank"><span class="em">&#128220;</span><b>No bills found</b><small>Make an order, or change the filters</small></div></td></tr>';
+    return;
+  }
+  $("histBody").innerHTML = list.map(o=>{
+    const pc = o.pay==="Cash"?"c-ok":o.pay==="Card"?"c-info":"c-warn";
+    const svc = o.items.map(i=>i.n+(i.q>1?" ×"+i.q:"")).join(", ");
+    return '<tr>'+
+      '<td><b>'+o.bill+'</b></td>'+
+      '<td>'+o.date+'<div class="mini">'+o.time+'</div></td>'+
+      '<td><b>'+esc(o.name)+'</b>'+(o.phone?'<div class="mini">'+esc(o.phone)+'</div>':'')+'</td>'+
+      '<td>'+esc(o.car||"-")+'<div class="mini">'+esc(o.plate||"")+' &bull; '+esc(o.size)+'</div></td>'+
+      '<td style="max-width:250px"><div class="mini">'+esc(svc)+'</div></td>'+
+      '<td class="money">'+f3(o.total)+'</td>'+
+      '<td><span class="chip '+pc+'">'+o.pay+'</span></td>'+
+      '<td>'+(o.status==="Paid" ? '<span class="chip c-ok">Paid</span>'
+             : '<span class="chip c-bad" style="cursor:pointer" onclick="togglePaid('+o.no+')" title="Click to mark Paid">Unpaid</span>')+'</td>'+
+      '<td style="white-space:nowrap">'+
+        '<button class="iconbtn" onclick="printBill('+o.no+')" title="Print">&#128424;</button>'+
+        '<button class="iconbtn d" onclick="delBill('+o.no+')" title="Delete">&#128465;</button>'+
+      '</td></tr>';
+  }).join("");
+}
+function stat(ic,cls,l,v){
+  return '<div class="stat"><div class="ic '+cls+'">'+ic+'</div><div><div class="l">'+l+'</div><div class="v">'+v+'</div></div></div>';
+}
+function togglePaid(no){
+  const o = orders.find(x=>x.no===no); if(!o) return;
+  o.status = "Paid"; save(); renderHist(); toast("Bill "+o.bill+" marked as Paid");
+}
+function delBill(no){
+  const o = orders.find(x=>x.no===no); if(!o) return;
+  if(!confirm("Delete bill "+o.bill+" ("+f3(o.total)+" OMR)?\nThis cannot be undone.")) return;
+  orders = orders.filter(x=>x.no!==no); save(); renderHist(); toast("Bill "+o.bill+" deleted","&#128465;");
+}
+function clearAll(){
+  if(!orders.length){ toast("There are no bills to clear","&#9888;"); return; }
+  if(!confirm("DELETE ALL "+orders.length+" BILLS?\n\nThis erases the whole history permanently.\nTip: press Cancel and Export to Excel first.")) return;
+  if(!confirm("Are you really sure? Last warning.")) return;
+  orders = []; save(); renderHist(); toast("All bills cleared","&#128465;");
+}
+
+/* ---------- export ---------- */
+function dl(content, filename, mime){
+  const blob = new Blob(["﻿"+content], {type:mime+";charset=utf-8"});
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+function stamp(){ const d=new Date(); return d.toISOString().slice(0,10)+"_"+d.toTimeString().slice(0,5).replace(":",""); }
+function xe(s){ return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function cellS(v){ return '<Cell><Data ss:Type="String">'+xe(v)+'</Data></Cell>'; }
+function cellN(v){ return '<Cell ss:StyleID="num"><Data ss:Type="Number">'+Number(v).toFixed(3)+'</Data></Cell>'; }
+
+function exportExcel(){
+  const list = filtered();
+  if(!list.length){ toast("Nothing to export","&#9888;"); return; }
+  const rows = list.slice().reverse();
+  let s1="", s2="";
+  rows.forEach(o=>{
+    o.items.forEach(i=>{
+      s1 += '<Row>'+cellS(o.bill)+cellS(o.date)+cellS(o.time)+cellS(o.name)+cellS(o.phone)+cellS(o.car)+cellS(o.plate)+
+            cellS(o.size)+cellS(i.n)+'<Cell><Data ss:Type="Number">'+i.q+'</Data></Cell>'+
+            cellN(i.price)+cellN(i.price*i.q)+cellS(o.pay)+cellS(o.status)+'</Row>';
+    });
+    s2 += '<Row>'+cellS(o.bill)+cellS(o.date)+cellS(o.time)+cellS(o.name)+cellS(o.phone)+cellS(o.car)+cellS(o.plate)+cellS(o.size)+
+          cellS(o.items.map(i=>i.n+(i.q>1?" x"+i.q:"")).join(" + "))+
+          '<Cell><Data ss:Type="Number">'+o.items.reduce((t,i)=>t+i.q,0)+'</Data></Cell>'+
+          cellN(o.sub)+cellN(o.disc)+cellN(o.vat)+cellN(o.total)+cellS(o.pay)+cellS(o.status)+cellS(o.cr||SET.cr)+cellS(o.vatNo||SET.vatNo)+'</Row>';
+  });
+  const h1 = ["Bill No","Date","Time","Customer","Phone","Car Model","Plate No","Vehicle Size","Service","Qty","Unit Price (OMR)","Line Total (OMR)","Payment","Status"];
+  const h2 = ["Bill No","Date","Time","Customer","Phone","Car Model","Plate No","Vehicle Size","Services","Items","Subtotal (OMR)","Discount (OMR)","VAT (OMR)","TOTAL (OMR)","Payment","Status","C.R. No","VATIN"];
+  const hdr  = a => '<Row ss:StyleID="hdr">'+a.map(cellS).join("")+'</Row>';
+  const cols = n => Array.from({length:n},()=>'<Column ss:AutoFitWidth="1" ss:Width="95"/>').join("");
+  const tot  = rows.reduce((t,o)=>t+o.total,0);
+  const xml =
+'<?xml version="1.0"?>\n<?mso-application progid="Excel.Sheet"?>\n'+
+'<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet" xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet">'+
+'<Styles><Style ss:ID="hdr"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0D9488" ss:Pattern="Solid"/></Style>'+
+'<Style ss:ID="num"><NumberFormat ss:Format="0.000"/></Style>'+
+'<Style ss:ID="ttl"><Font ss:Bold="1" ss:Size="13"/></Style></Styles>'+
+'<Worksheet ss:Name="Bill Items"><Table>'+cols(h1.length)+hdr(h1)+s1+'</Table></Worksheet>'+
+'<Worksheet ss:Name="Bills Summary"><Table>'+cols(h2.length)+hdr(h2)+s2+
+'<Row></Row><Row><Cell ss:StyleID="ttl"><Data ss:Type="String">GRAND TOTAL</Data></Cell>'+
+'<Cell ss:Index="14" ss:StyleID="ttl"><Data ss:Type="Number">'+tot.toFixed(3)+'</Data></Cell></Row>'+
+'</Table></Worksheet></Workbook>';
+  dl(xml, "CarWash_Bills_"+stamp()+".xls", "application/vnd.ms-excel");
+  toast("Excel downloaded ("+rows.length+" bills)","&#128202;");
+}
+function exportCSV(){
+  const list = filtered();
+  if(!list.length){ toast("Nothing to export","&#9888;"); return; }
+  const q = v => '"' + String(v==null?"":v).replace(/"/g,'""') + '"';
+  let csv = ["Bill No","Date","Time","Customer","Phone","Car Model","Plate No","Vehicle Size","Service","Qty","Unit Price OMR","Line Total OMR","Bill Subtotal","Discount","VAT","Bill Total","Payment","Status"].map(q).join(",")+"\n";
+  list.slice().reverse().forEach(o=>{
+    o.items.forEach((i,k)=>{
+      const f = k===0;
+      csv += [o.bill,o.date,o.time,o.name,o.phone,o.car,o.plate,o.size,i.n,i.q,f3(i.price),f3(i.price*i.q),
+              f?f3(o.sub):"", f?f3(o.disc):"", f?f3(o.vat):"", f?f3(o.total):"", f?o.pay:"", f?o.status:""].map(q).join(",")+"\n";
+    });
+  });
+  dl(csv, "CarWash_Bills_"+stamp()+".csv", "text/csv");
+  toast("CSV downloaded","&#128202;");
+}
+
+/* ---------- backup ---------- */
+function backup(){
+  dl(JSON.stringify({set:SET, orders:orders, counter:counter, services:SERVICES}, null, 2),
+     "CarWash_Backup_"+stamp()+".json", "application/json");
+  toast("Backup saved","&#128190;");
+}
+function restore(ev){
+  const file = ev.target.files[0]; if(!file) return;
+  const r = new FileReader();
+  r.onload = e => {
+    try{
+      const d = JSON.parse(e.target.result);
+      if(!d.orders) throw new Error("Not a valid backup file");
+      if(!confirm("Replace current data with backup ("+d.orders.length+" bills)?")) return;
+      orders = d.orders; counter = d.counter || orders.length+1;
+      if(d.set) SET = Object.assign(SET, d.set);
+      if(Array.isArray(d.services) && d.services.length){ SERVICES = d.services; idServices(); }
+      save(); renderHist(); fillSettings(); applySettings(); refreshMenu(); toast("Backup restored");
+    }catch(err){ alert("Restore failed: "+err.message); }
+  };
+  r.readAsText(file); ev.target.value = "";
+}
+
+/* ---------- settings ---------- */
+function fillSettings(){
+  $("stName").value=SET.name; $("stNameAr").value=SET.nameAr; $("stAddr").value=SET.addr;
+  $("stPhone").value=SET.phone; $("stEmail").value=SET.email||""; $("stCr").value=SET.cr||"";
+  $("stVatNo").value=SET.vatNo; $("stVatPct").value=SET.vatPct;
+  $("stCashier").value=SET.cashier||""; $("stFooter").value=SET.footer; $("stTerms").value=SET.terms||"";
+  $("stVatOn").checked=!!SET.vatOn;
+}
+function saveSettings(){
+  SET.name=$("stName").value.trim()||SET.name; SET.nameAr=$("stNameAr").value.trim();
+  SET.addr=$("stAddr").value.trim(); SET.phone=$("stPhone").value.trim(); SET.email=$("stEmail").value.trim();
+  SET.cr=$("stCr").value.trim(); SET.vatNo=$("stVatNo").value.trim();
+  SET.vatPct=parseFloat($("stVatPct").value)||0; SET.cashier=$("stCashier").value.trim();
+  SET.footer=$("stFooter").value.trim(); SET.terms=$("stTerms").value.trim();
+  SET.vatOn=$("stVatOn").checked;
+  if(SET.vatOn && !SET.vatNo){ alert("You ticked VAT registered but the VAT Number (VATIN) is empty.\nAn Oman tax invoice must show the VATIN."); }
+  save(); applySettings(); calc(); toast("Settings saved");
+}
+function applySettings(){
+  $("brandName").textContent = SET.name.length>16 ? SET.name.slice(0,16)+"…" : SET.name;
+  $("brandSub").textContent  = "Car Wash POS v2";
+  document.title = SET.name + " - POS v2";
+}
+
+/* ---------- price list editor ---------- */
+function renderPrices(){
+  if(!SERVICES.length){
+    $("priceBody").innerHTML = '<tr><td colspan="6"><div class="blank"><span class="em">&#127991;</span><b>No services yet</b><small>Press Add New Service</small></div></td></tr>';
+    return;
+  }
+  $("priceBody").innerHTML = SERVICES.map(s=>
+    '<tr><td><span class="chip c-info">'+esc(s.c)+'</span></td>'+
+    '<td><b>'+esc(s.n)+'</b>'+(s.a?'<div class="mini" style="direction:rtl">'+esc(s.a)+'</div>':'')+'</td>'+
+    '<td class="money">'+f3(s.p[0])+'</td><td class="money">'+f3(s.p[1])+'</td><td class="money">'+f3(s.p[2])+'</td>'+
+    '<td style="white-space:nowrap">'+
+      '<button class="iconbtn" onclick="openSvc(\''+s.id+'\')" title="Edit">&#9998;</button>'+
+      '<button class="iconbtn d" onclick="delSvc(\''+s.id+'\')" title="Delete">&#128465;</button>'+
+    '</td></tr>').join("");
+}
+let editingId = null;
+function openSvc(id){
+  editingId = id;
+  const s = id ? svcById(id) : null;
+  $("svcTitle").textContent = s ? "Edit Service" : "Add New Service";
+  $("svcErr").textContent = "";
+  const cats = [...new Set(SERVICES.map(x=>x.c))];
+  if(!cats.length) cats.push("Wash");
+  $("svcCat").innerHTML = cats.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join("")
+    + '<option value="__new">+ New category...</option>';
+  $("svcName").value = s ? s.n : "";
+  $("svcAr").value   = s ? (s.a||"") : "";
+  $("svcCat").value  = s ? s.c : cats[0];
+  $("svcNewCat").value = ""; $("newCatWrap").style.display = "none";
+  for(let k=0;k<3;k++) $("svcP"+k).value = s ? f3(s.p[k]) : "";
+  $("svcModal").classList.add("open");
+  setTimeout(()=>$("svcName").focus(), 60);
+}
+function closeSvc(){ $("svcModal").classList.remove("open"); editingId = null; }
+function catPick(){
+  const isNew = $("svcCat").value === "__new";
+  $("newCatWrap").style.display = isNew ? "flex" : "none";
+  if(isNew) $("svcNewCat").focus();
+}
+function saveSvc(){
+  const name = $("svcName").value.trim();
+  let cat = $("svcCat").value === "__new" ? $("svcNewCat").value.trim() : $("svcCat").value;
+  const p = [0,1,2].map(k=>parseFloat($("svcP"+k).value));
+  if(!name){ $("svcErr").textContent = "Please write the service name."; return; }
+  if(!cat){  $("svcErr").textContent = "Please write the new category name."; return; }
+  if(p.some(v=>isNaN(v) || v < 0)){ $("svcErr").textContent = "Please enter all 3 prices (Normal Car, SUV, 4x4)."; return; }
+  const dup = SERVICES.find(s=>s.n.toLowerCase()===name.toLowerCase() && s.id!==editingId);
+  if(dup){ $("svcErr").textContent = "A service with this name already exists."; return; }
+  if(editingId){
+    const s = svcById(editingId);
+    s.n = name; s.a = $("svcAr").value.trim(); s.c = cat; s.p = p;
+    toast("Service updated");
+  } else {
+    SERVICES.push({id:"s"+(svcSeq++), c:cat, n:name, a:$("svcAr").value.trim(), p:p});
+    toast("Service added");
+  }
+  save(); closeSvc(); refreshMenu();
+}
+function delSvc(id){
+  const s = svcById(id); if(!s) return;
+  if(!confirm('Delete the service "'+s.n+'" from the price list?\n\nOld bills are not affected.')) return;
+  SERVICES = SERVICES.filter(x=>x.id!==id);
+  save(); refreshMenu(); toast("Service deleted","&#128465;");
+}
+function resetPrices(){
+  if(!confirm("Reset the price list back to the original list?\n\nAll services you added or edited will be lost.")) return;
+  loadDefaultServices(); save(); refreshMenu(); toast("Price list reset");
+}
+function refreshMenu(){
+  const cats = ["All", ...new Set(SERVICES.map(s=>s.c))];
+  if(cats.indexOf(curCat) === -1) curCat = "All";
+  renderCats(); renderMenu(); repriceCart(); renderPrices();
+}
+
+/* ---------- modal keys ---------- */
+$("svcModal").addEventListener("click", e=>{ if(e.target.id==="svcModal") closeSvc(); });
+document.addEventListener("keydown", e=>{
+  if(!$("svcModal").classList.contains("open")) return;
+  if(e.key==="Escape") closeSvc();
+  if(e.key==="Enter" && e.target.tagName==="INPUT") saveSvc();
+});
+
+/* ---------- clock ---------- */
+setInterval(()=>{
+  const d = new Date();
+  $("clock").innerHTML = d.toLocaleDateString("en-GB",{weekday:"short",day:"2-digit",month:"short",year:"numeric"})+
+    "<br><b>"+d.toLocaleTimeString("en-GB")+"</b>";
+}, 1000);
+
+/* ---------- init ---------- */
+try{ setTheme(localStorage.getItem(K("theme"))==="dark" ? "dark" : "light"); }catch(e){ setTheme("light"); }
+load(); applySettings(); renderSizes(); renderCats(); renderMenu(); renderCart(); renderPrices(); renderHist();
+
+/* ==========================================================
+   DEMO MODE  -  this copy is for showing customers only.
+   The full version has none of these limits.
+   ========================================================== */
+(function(){
+  const WA   = "96892088530";
+  const WAMSG= encodeURIComponent("السلام عليكم، شفت النسخة التجريبية وأبغى النظام الكامل لمحلي");
+  const LIMIT= 5;
+
+  /* --- floating badge, always visible, carries your number with the link --- */
+  const bar = document.createElement("div");
+  bar.style.cssText =
+    "position:fixed;left:0;right:0;bottom:0;z-index:5000;background:#0f172a;color:#fff;"+
+    "padding:11px 16px;display:flex;align-items:center;justify-content:center;gap:14px;flex-wrap:wrap;"+
+    "font-family:inherit;font-size:13.5px;font-weight:700;box-shadow:0 -6px 24px rgba(0,0,0,.35)";
+  bar.innerHTML =
+    '<span style="background:#f59e0b;color:#000;padding:3px 10px;border-radius:7px;font-weight:800;font-size:12px">DEMO</span>'+
+    '<span>This is a demo &mdash; limited to '+LIMIT+' bills. &nbsp;|&nbsp; هذه نسخة تجريبية</span>'+
+    '<a href="https://wa.me/'+WA+'?text='+WAMSG+'" target="_blank" rel="noopener" '+
+      'style="background:#25D366;color:#fff;text-decoration:none;padding:8px 16px;border-radius:9px;font-weight:800">'+
+      '&#128241; Get the full version &mdash; اطلب النسخة الكاملة</a>';
+  document.body.appendChild(bar);
+  document.body.style.paddingBottom = "62px";
+
+  /* --- every printed bill is stamped, so a saved copy cannot be used for real billing --- */
+  const _receipt = receiptHTML;
+  receiptHTML = function(o){
+    return _receipt(o).replace(
+      '<div class="doctype">',
+      '<div style="text-align:center;border:2px solid #000;padding:5px 0;margin:6px 0;font-weight:bold;font-size:13px">'+
+      'DEMO COPY - NOT VALID<br>نسخة تجريبية - غير صالحة</div><div class="doctype">'
+    ) + '<div style="text-align:center;font-size:10px;margin-top:6px">'+
+        'Demo by Mohammed Al Riyami &bull; +968 9208 8530</div>';
+  };
+
+  /* --- bill limit: enough to try it, useless to run a shop on --- */
+  const _place = placeOrder;
+  placeOrder = function(doPrint){
+    if (orders.length >= LIMIT){
+      toast("Demo limit reached ("+LIMIT+" bills). Message me for the full version.", "&#9888;");
+      return;
+    }
+    _place(doPrint);
+  };
+
+  /* --- backup is a full-version feature --- */
+  backup = function(){
+    toast("Backup works in the full version", "&#128274;");
+  };
+
+  document.title = "DEMO - " + document.title;
+})();
+</script>
+</body>
+</html>
